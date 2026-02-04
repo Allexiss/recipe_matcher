@@ -1,0 +1,70 @@
+{
+ "chicken": {
+    "quantity": 2,
+    "unit": "lbs"
+  },
+  "onion": {
+    "quantity": 3,
+    "unit": "pcs"
+  },
+  "garlic": {
+    "quantity": 5,
+    "unit": "cloves"
+  },
+  "salt": {
+    "quantity": 1,
+    "unit": "tsp"
+  },
+  "pepper": {
+    "quantity": 1,
+    "unit": "tsp"
+  },
+  "yogurt": {
+    "quantity": 1,
+    "unit": "cup"
+  },
+  "tomatoes": {
+    "quantity": 2,
+    "unit": "pcs"
+  },
+  "ginger paste": {
+    "quantity": 1,
+    "unit": "tbsp"
+  },
+  "vegetable oil": {
+    "quantity": 250,
+    "unit": "ml"
+  },
+  "cumin seeds": {
+    "quantity": 100,
+    "unit": "g"
+  },
+  "coriander seeds": {
+    "quantity": 25,
+    "unit": "g"
+  },
+  "turmeric powder": {
+    "quantity": 1,
+    "unit": "tsp"
+  },
+  "chilli powder": {
+    "quantity": 250,
+    "unit": "g"
+  },
+  "green chilli": {
+    "quantity": 2,
+    "unit": "pcs"
+  },
+  "cream": {
+    "quantity": 1,
+    "unit": "L"
+  },
+  "fenugreek": {
+    "quantity": 1,
+    "unit": "tsp"
+  },
+  "garam masala": {
+    "quantity": 1,
+    "unit": "tsp"
+  }
+}
