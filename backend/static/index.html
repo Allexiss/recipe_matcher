@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Kitchen Inventory</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<nav style="margin-bottom:20px;">
+    <a href="index.html" style="margin-right:15px; text-decoration:none; font-weight:bold; color:#007bff;">Home</a>
+    <a href="/static/match_recipe.html">Matched Recipes</a>
+</nav>
+
+<h1>Kitchen Inventory</h1>
+
+<div class="inventory-add">
+    <input id="new-name" placeholder="Ingredient name">
+    <input id="new-qty" type="number" min="0" step="0.1" placeholder="Qty">
+    <select id="new-unit"></select>
+    <button id="add-btn">Add</button>
+</div>
+
+<table id="inventory-table">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Qty</th>
+            <th>Unit</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody id="inventory-body">
+        <!-- Populated by app.js -->
+    </tbody>
+</table>
+
+<button id="reset-btn" class="danger">Reset Inventory</button>
+
+<p style="margin-top:10px;">
+    <a href="/static/match_recipe.html">Find recipes →</a>
+</p>
+  
+<script src="/static/app.js"></script>
+</body>
+</html>
