@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Matched Recipes</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f8f9fa;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1200px;
+      margin: auto;
+    }
+    .search-bar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    input {
+      flex: 1;
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+    }
+    button {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 6px;
+      background-color: #007bff;
+      color: #fff;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+    }
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+      transition: transform 0.2s ease;
+    }
+    .card:hover {
+      transform: translateY(-4px);
+    }
+    .card img {
+      width: 100%;
+      height: 160px;
+      object-fit: cover;
+    }
+    .card-content {
+      padding: 15px;
+    }
+    .card-title {
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    .view-btn {
+      background: #6c757d;
+      width: 100%;
+      padding: 8px;
+      margin-top: 10px;
+      border-radius: 6px;
+      color: white;
+      cursor: pointer;
+      border: none;
+    }
+    .view-btn:hover {
+      background: #565e64;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <nav style="margin-bottom:20px;">
+      <a href="/">Home</a>
+      <a href="/static/match_recipe.html">Matched Recipes</a>
+    </nav>
+
+    <h1>Matched Recipes</h1>
+
+    <div class="search-bar">
+      <input id="searchInput" type="text" placeholder="Search recipes (e.g. chicken)..." />
+      <button onclick="fetchRecipes()">Search</button>
+    </div>
+
+    <p id="loadingMsg" style="display:none;">Loading recipes...</p>
+    <p id="errorMsg" style="color:red;"></p>
+
+    <div class="grid" id="recipeGrid"></div>
+  </div>
+
+  <script>
+    const STAR_INGREDIENTS = [
+      "chicken",
+      "beef",
+      "pork",
+      "salmon",
+      "egg",
+      "eggs",
+      "onion",
+      "celery"
+    ];
+  
+    function isStarRecipe(recipe, query) {
+      const q = (query || "").toLowerCase();
+      if (!q) return false;
+      if (!STAR_INGREDIENTS.includes(q)) return false;
+  
+      const title = (recipe.title || "").toLowerCase();
+      if (title.includes(q)) return true;
+  
+      const ingredients = Array.isArray(recipe.ingredients) ? recipe.ingredients : [];
+      return ingredients.some((ing) => (ing.name || "").toLowerCase().indexOf(q) !== -1);
+    }
+  
+    function normalizeName(name) {
+      return (name || "").trim().toLowerCase();
+    }
+  
+    function missingCount(recipe) {
+      if (!Array.isArray(recipe.missing)) return 999;
+      return recipe.missing.length;
+    }
+  
+    async function fetchRecipes() {
+      const rawQuery = (document.getElementById("searchInput").value || "").trim();
+  
+      document.getElementById("loadingMsg").style.display = "block";
+      document.getElementById("errorMsg").textContent = "";
+  
+      try {
+        const invItemsRes = await fetch("/api/inventory");
+        if (!invItemsRes.ok) throw new Error("Failed to load inventory items");
+        const invItems = await invItemsRes.json();
+        const haveSet = new Set(Object.keys(invItems || {}).map((n) => normalizeName(n)));
+  
+        let query = rawQuery;
+        if (!query) {
+          for (const star of STAR_INGREDIENTS) {
+            if (haveSet.has(star)) {
+              query = star;
+              break;
+            }
+          }
+        }
+  
+        const invRecipesRes = await fetch(
+          `/api/inventory/recipes?search=${encodeURIComponent(query || "")}`
+        );
+        if (!invRecipesRes.ok) throw new Error("Failed to load inventory recipes");
+        const invRecipesData = await invRecipesRes.json();
+  
+        const invRecipes = (invRecipesData.recipes || []).map((r) => ({
+          source: "inventory",
+          title: r.title,
+          image: r.image,
+          missing: r.missing || [],
+          ingredients: r.ingredients || [],
+          instructions: r.instructions || ""
+        }));
+  
+        let extRecipes = [];
+        if (query) {
+          const externalRes = await fetch(
+            `https://www.themealdb.com/api/json/v1/1/filter.php?i=${encodeURIComponent(query)}`
+          );
+          if (externalRes.ok) {
+            const externalData = await externalRes.json();
+            const meals = externalData.meals || [];
+  
+            for (const m of meals) {
+              const id = m.idMeal;
+              let full = null;
+  
+              try {
+                const detailRes = await fetch(
+                  `https://www.themealdb.com/api/json/v1/1/lookup.php?i=${encodeURIComponent(id)}`
+                );
+                if (detailRes.ok) {
+                  const detailData = await detailRes.json();
+                  if (detailData.meals && detailData.meals.length > 0) {
+                    full = detailData.meals[0];
+                  }
+                }
+              } catch (e) {
+                full = null;
+              }
+  
+              if (!full) {
+                extRecipes.push({
+                  source: "external",
+                  title: m.strMeal,
+                  image: m.strMealThumb,
+                  missing: ["(external recipe – check ingredients)"],
+                  ingredients: [],
+                  instructions: ""
+                });
+                continue;
+              }
+  
+              const ingredients = [];
+              const missing = [];
+  
+              for (let i = 1; i <= 20; i++) {
+                const rawName = (full[`strIngredient${i}`] || "").trim();
+                const rawMeasure = (full[`strMeasure${i}`] || "").trim();
+                if (!rawName) continue;
+  
+                ingredients.push({ name: rawName, measure: rawMeasure });
+  
+                const norm = normalizeName(rawName);
+                if (!haveSet.has(norm)) {
+                  missing.push(rawName);
+                }
+              }
+  
+              extRecipes.push({
+                source: "external",
+                title: full.strMeal,
+                image: full.strMealThumb,
+                missing,
+                ingredients,
+                instructions: full.strInstructions || ""
+              });
+            }
+          }
+        }
+  
+        const invTitles = new Set(
+          invRecipes.map((r) => (r.title || "").trim().toLowerCase())
+        );
+        extRecipes = extRecipes.filter(
+          (r) => !invTitles.has((r.title || "").trim().toLowerCase())
+        );
+  
+        const all = invRecipes.concat(extRecipes);
+        const star = [];
+        const others = [];
+  
+        all.forEach((r) => {
+          if (isStarRecipe(r, query)) {
+            star.push(r);
+          } else {
+            others.push(r);
+          }
+        });
+  
+        star.sort((a, b) => missingCount(a) - missingCount(b));
+        others.sort((a, b) => missingCount(a) - missingCount(b));
+  
+        const sorted = star.concat(others);
+        displayRecipes(sorted);
+      } catch (err) {
+        document.getElementById("errorMsg").textContent = err.message;
+      } finally {
+        document.getElementById("loadingMsg").style.display = "none";
+      }
+    }
+  
+    window.addEventListener("load", () => {
+      fetchRecipes();
+    });
+  </script>
+  
+  
+  
+
+  <script>
+    function displayRecipes(recipes) {
+      const grid = document.getElementById("recipeGrid");
+      grid.innerHTML = "";
+
+      recipes.forEach((recipe) => {
+        const card = document.createElement("div");
+        card.className = "card";
+
+        const img = document.createElement("img");
+        img.src = recipe.image || "";
+        img.alt = recipe.title || "Recipe";
+
+        const cardContent = document.createElement("div");
+        cardContent.className = "card-content";
+
+        const title = document.createElement("div");
+        title.className = "card-title";
+        title.textContent = recipe.title || "(untitled)";
+
+        const cookableInfo = document.createElement("p");
+        const missing = Array.isArray(recipe.missing) ? recipe.missing : [];
+        if (missing.length > 0) {
+          cookableInfo.textContent = `Missing: ${missing.join(", ")}`;
+          cookableInfo.style.color = "red";
+        } else {
+          cookableInfo.textContent = "Fully Cookable!";
+          cookableInfo.style.color = "green";
+        }
+
+        const viewBtn = document.createElement("button");
+        viewBtn.className = "view-btn";
+        viewBtn.textContent = "View Recipe";
+
+        const favBtn = document.createElement("button");
+        favBtn.style.width = "100%";
+        favBtn.style.marginTop = "8px";
+        favBtn.textContent = "Save ⭐";
+
+        const details = document.createElement("div");
+        details.style.display = "none";
+        details.style.marginTop = "10px";
+
+        if (Array.isArray(recipe.ingredients) && recipe.ingredients.length > 0) {
+          const ul = document.createElement("ul");
+          recipe.ingredients.forEach((i) => {
+            const li = document.createElement("li");
+            const measure = (i.measure || "").trim();
+            const name = (i.name || "").trim();
+            li.textContent = measure ? `${measure} ${name}` : name;
+            ul.appendChild(li);
+          });
+          details.appendChild(ul);
+        }
+
+        if (recipe.instructions) {
+          const p = document.createElement("p");
+          p.textContent = recipe.instructions;
+          details.appendChild(p);
+        }
+
+        viewBtn.addEventListener("click", () => {
+          const open = details.style.display === "block";
+          details.style.display = open ? "none" : "block";
+          viewBtn.textContent = open ? "View Recipe" : "Hide Recipe";
+        });
+
+        favBtn.addEventListener("click", async () => {
+          if (favBtn.textContent === "Saved ⭐") {
+            const res = await fetch("/api/favorites", {
+              method: "DELETE",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ title: recipe.title })
+            });
+            if (res.ok) {
+              favBtn.textContent = "Save ⭐";
+            }
+          } else {
+            const res = await fetch("/api/favorites", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                title: recipe.title,
+                image: recipe.image,
+                missing: recipe.missing,
+                ingredients: recipe.ingredients,
+                instructions: recipe.instructions
+              })
+            });
+            if (res.ok) {
+              favBtn.textContent = "Saved ⭐";
+            }
+          }
+        });
+
+        cardContent.appendChild(title);
+        cardContent.appendChild(cookableInfo);
+        cardContent.appendChild(viewBtn);
+        cardContent.appendChild(favBtn);
+        cardContent.appendChild(details);
+
+        card.appendChild(img);
+        card.appendChild(cardContent);
+        grid.appendChild(card);
+      });
+    }
+  </script>
+</body>
+</html>
