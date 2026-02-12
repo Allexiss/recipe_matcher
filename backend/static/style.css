@@ -1,0 +1,72 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 20px auto;
+    max-width: 800px;
+}
+
+h1 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.add-form input, .add-form select {
+    margin-right: 10px;
+}
+
+.inventory-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+.inventory-table th, .inventory-table td {
+    padding: 8px;
+    border: 1px solid #ccc;
+}
+
+.actions button {
+    margin-right: 5px;
+}
+
+button.delete {
+    background-color: #ff4d4d;
+    color: white;
+}
+
+.reset-btn {
+    margin-top: 20px;
+    background: #333;
+    color: white;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    padding: 20px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 12px;
+}
+
+th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+}
+
+input, select {
+    width: 100%;
+    padding: 4px;
+}
+
+button {
+    margin: 2px;
+    padding: 4px 10px;
+    cursor: pointer;
+}
+
+button.danger {
+    background: #c33;
+    color: white;
+}
